@@ -1,0 +1,96 @@
+import express from "express";
+import ldap from "ldapjs";
+import cors from "cors";
+
+const app = express();
+app.use(express.json());
+app.use(cors());
+
+// 🔥 HARDCODED CONFIG (for testing)
+const LDAP_URL = "ldaps://qcdw.questdiagnostics.com:636";
+const BASE_DN = "dc=questdiagnostics,dc=com";
+
+// Optional (only if needed)
+const SERVICE_ACCOUNT = "admin@questdiagnostics.com";
+const SERVICE_PASSWORD = "adminPassword";
+
+app.post("/login", async (req, res) => {
+  const { email, password } = req.body;
+
+  const client = ldap.createClient({
+    url: LDAP_URL,
+    tlsOptions: { rejectUnauthorized: false }, // ⚠️ for testing only
+  });
+
+  try {
+    // 👉 STEP 1: Try direct bind first (simplest)
+    await new Promise((resolve, reject) => {
+      client.bind(email, password, (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    return res.json({ success: true, message: "Login successful (direct bind)" });
+
+  } catch (directError) {
+    // 👉 STEP 2: Fallback (search + bind)
+
+    try {
+      // Bind with service account
+      await new Promise((resolve, reject) => {
+        client.bind(SERVICE_ACCOUNT, SERVICE_PASSWORD, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      // Search user
+      const userDN = await new Promise((resolve, reject) => {
+        const opts = {
+          filter: `(userPrincipalName=${email})`,
+          scope: "sub",
+          attributes: ["distinguishedName"],
+        };
+
+        let foundDN = null;
+
+        client.search(BASE_DN, opts, (err, searchRes) => {
+          if (err) reject(err);
+
+          searchRes.on("searchEntry", (entry) => {
+            foundDN = entry.object.distinguishedName;
+          });
+
+          searchRes.on("end", () => {
+            if (!foundDN) reject(new Error("User not found"));
+            else resolve(foundDN);
+          });
+        });
+      });
+
+      // Bind with user DN
+      await new Promise((resolve, reject) => {
+        client.bind(userDN, password, (err) => {
+          if (err) reject(err);
+          else resolve();
+        });
+      });
+
+      return res.json({ success: true, message: "Login successful (search bind)" });
+
+    } catch (error) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid credentials",
+      });
+    }
+  } finally {
+    client.unbind();
+  }
+});
+
+// 🚀 Start server
+app.listen(5000, () => {
+  console.log("LDAP server running on http://localhost:5000");
+});
