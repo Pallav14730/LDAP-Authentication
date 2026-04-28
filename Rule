@@ -1,0 +1,21 @@
+{
+  rules: {
+    "@typescript-eslint/no-unused-vars": [
+      "warn",
+      { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }
+    ],
+    "@typescript-eslint/no-explicit-any": "warn",
+
+    // already added
+    "unicorn/no-negated-condition": "off",
+    "unicorn/filename-case": "off",
+
+    // 🔥 ADD THESE NEW ONES
+    "unicorn/new-for-builtins": "off",
+    "unicorn/prefer-number-properties": "off",
+    "unicorn/catch-error-name": "off",
+    "unicorn/prefer-ternary": "off",
+
+    "react/no-unescaped-entities": "off",
+  },
+}
