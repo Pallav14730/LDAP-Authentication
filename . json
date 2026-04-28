@@ -1,0 +1,14 @@
+
+{
+    rules: {
+      "@typescript-eslint/no-unused-vars": [
+        "warn",
+        { argsIgnorePattern: "^_", varsIgnorePattern: "^_" }
+      ],
+      "@typescript-eslint/no-explicit-any": "warn",
+
+      "unicorn/no-negated-condition": "off",
+      "unicorn/filename-case": "off",
+
+      "react/no-unescaped-entities": "off",
+    },
