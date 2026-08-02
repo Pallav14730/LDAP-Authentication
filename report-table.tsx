@@ -12,17 +12,18 @@ import {
   TableBody,
   Chip,
   Box,
+  TableContainer,
+  Paper,
 } from '@mui/material';
 
 export interface ReportRow {
-  id: number;
-  date: string;
-  associate: string;
-  tower: string;
-  application: string;
+  effort_date: string;
+  user_name: string;
+  application_name: string;
   activity: string;
-  subActivity: string;
-  effort: number;
+  sub_activity: string;
+  description: string;
+  effort_hours: number;
 }
 
 interface ReportsTableProps {
@@ -34,9 +35,13 @@ export function ReportsTable({
 }: ReportsTableProps): React.JSX.Element {
 
   const totalHours = rows.reduce(
-    (sum, row) => sum + Number(row.effort),
+    (sum, row) => sum + Number(row.effort_hours),
     0
   );
+
+  const totalAssociates = new Set(
+    rows.map((row) => row.user_name)
+  ).size;
 
   return (
     <Card
@@ -60,113 +65,131 @@ export function ReportsTable({
           Report Preview
         </Typography>
 
-        <Table>
+        <TableContainer component={Paper}>
 
-          <TableHead>
+          <Table>
 
-            <TableRow
-              sx={{
-                background:
-                  'linear-gradient(135deg,#8dc63f,#3a8f2f)',
-              }}
-            >
-              <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
-                Date
-              </TableCell>
+            <TableHead>
 
-              <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
-                Associate
-              </TableCell>
-
-              <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
-                Tower
-              </TableCell>
-
-              <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
-                Application
-              </TableCell>
-
-              <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
-                Activity
-              </TableCell>
-
-              <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
-                Sub Activity
-              </TableCell>
-
-              <TableCell
-                align="center"
-                sx={{ color: '#fff', fontWeight: 700 }}
+              <TableRow
+                sx={{
+                  background:
+                    'linear-gradient(135deg,#8dc63f,#3a8f2f)',
+                }}
               >
-                Hours
-              </TableCell>
 
-            </TableRow>
+                <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
+                  Effort Date
+                </TableCell>
 
-          </TableHead>
+                <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
+                  User Name
+                </TableCell>
 
-          <TableBody>
+                <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
+                  Application
+                </TableCell>
 
-            {rows.length === 0 ? (
+                <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
+                  Activity
+                </TableCell>
 
-              <TableRow>
+                <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
+                  Sub Activity
+                </TableCell>
 
-                <TableCell colSpan={7} align="center">
+                <TableCell sx={{ color: '#fff', fontWeight: 700 }}>
+                  Description
+                </TableCell>
 
-                  No Records Found
-
+                <TableCell
+                  align="center"
+                  sx={{ color: '#fff', fontWeight: 700 }}
+                >
+                  Hours
                 </TableCell>
 
               </TableRow>
 
-            ) : (
+            </TableHead>
 
-              rows.map((row) => (
+            <TableBody>
 
-                <TableRow key={row.id} hover>
+              {rows.length === 0 ? (
 
-                  <TableCell>{row.date}</TableCell>
+                <TableRow>
 
-                  <TableCell>{row.associate}</TableCell>
-
-                  <TableCell>{row.tower}</TableCell>
-
-                  <TableCell>{row.application}</TableCell>
-
-                  <TableCell>{row.activity}</TableCell>
-
-                  <TableCell>{row.subActivity}</TableCell>
-
-                  <TableCell align="center">
-
-                    <Chip
-                      label={`${row.effort} hrs`}
-                      color="success"
-                      variant="outlined"
-                    />
-
+                  <TableCell
+                    colSpan={7}
+                    align="center"
+                  >
+                    No Records Found
                   </TableCell>
 
                 </TableRow>
 
-              ))
+              ) : (
 
-            )}
+                rows.map((row, index) => (
 
-          </TableBody>
+                  <TableRow key={index} hover>
 
-        </Table>
+                    <TableCell>
+                      {row.effort_date}
+                    </TableCell>
+
+                    <TableCell>
+                      {row.user_name}
+                    </TableCell>
+
+                    <TableCell>
+                      {row.application_name}
+                    </TableCell>
+
+                    <TableCell>
+                      {row.activity}
+                    </TableCell>
+
+                    <TableCell>
+                      {row.sub_activity}
+                    </TableCell>
+
+                    <TableCell>
+                      {row.description}
+                    </TableCell>
+
+                    <TableCell align="center">
+
+                      <Chip
+                        label={`${row.effort_hours} hrs`}
+                        color="success"
+                        variant="outlined"
+                      />
+
+                    </TableCell>
+
+                  </TableRow>
+
+                ))
+
+              )}
+
+            </TableBody>
+
+          </Table>
+
+        </TableContainer>
 
         <Box
           sx={{
-            mt: 3,
+            mt: 2,
             display: 'flex',
             justifyContent: 'space-between',
           }}
         >
 
           <Typography fontWeight={700}>
-            Total Associates : {new Set(rows.map(r => r.associate)).size}
+            Total Associates : {totalAssociates}
           </Typography>
 
           <Typography
