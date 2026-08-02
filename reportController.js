@@ -1,16 +1,26 @@
-const reportModel = require("../models/reportModel");
-
 exports.downloadReport = async (req, res) => {
   try {
-    const { fromDate, toDate } = req.query;
 
-    const data = await reportModel.getReport(fromDate, toDate);
+    const {
+      fromDate,
+      toDate,
+      towerId,
+      applicationId
+    } = req.query;
 
-    res.status(200).json(data);
+    const data = await reportModel.getReport(
+      fromDate,
+      toDate,
+      towerId,
+      applicationId
+    );
+
+    res.json(data);
+
   } catch (err) {
     console.error(err);
     res.status(500).json({
-      message: "Failed to fetch report",
+      message: "Failed to fetch report"
     });
   }
 };
