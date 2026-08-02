@@ -1,55 +1,63 @@
 'use client';
 
 import * as React from 'react';
-
 import {
   Box,
   Card,
   CardContent,
   Typography,
   Avatar,
-  Grid,
   TextField,
-  MenuItem,
   Button,
-  Divider
+  Grid,
 } from '@mui/material';
 
 import DownloadIcon from '@mui/icons-material/Download';
 import PreviewIcon from '@mui/icons-material/Preview';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 
-export function ReportsPage(): React.JSX.Element {
+import { ReportsTable, ReportRow } from './reports-table';
 
+export function ReportsPage(): React.JSX.Element {
   const [fromDate, setFromDate] = React.useState('');
   const [toDate, setToDate] = React.useState('');
+  const [rows, setRows] = React.useState<ReportRow[]>([]);
+  const [loading, setLoading] = React.useState(false);
 
-  const [tower, setTower] = React.useState('');
-  const [application, setApplication] = React.useState('');
-  const [associate, setAssociate] = React.useState('');
+  const handlePreview = async () => {
+    if (!fromDate || !toDate) {
+      alert('Please select From Date and To Date');
+      return;
+    }
 
-  const handlePreview = () => {
-    console.log({
-      fromDate,
-      toDate,
-      tower,
-      application,
-      associate,
-    });
+    try {
+      setLoading(true);
 
-    // TODO:
-    // Call Preview API
+      const response = await fetch(
+        `http://localhost:3000/api/report?fromDate=${fromDate}&toDate=${toDate}`
+      );
+
+      if (!response.ok) {
+        throw new Error('Failed to fetch report');
+      }
+
+      const data = await response.json();
+
+      setRows(data);
+    } catch (error) {
+      console.error(error);
+      alert('Unable to load report');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDownload = () => {
-    console.log('Download Excel');
-
-    // TODO:
-    // Call Download API
+    // We'll implement Excel download next
+    alert('Excel Download Coming Next');
   };
 
   return (
-
     <Card
       sx={{
         border: '1px solid rgba(141,198,63,0.22)',
@@ -58,9 +66,7 @@ export function ReportsPage(): React.JSX.Element {
         overflow: 'hidden',
       }}
     >
-
       {/* Header */}
-
       <Box
         sx={{
           background:
@@ -68,24 +74,19 @@ export function ReportsPage(): React.JSX.Element {
           px: 3,
           py: 2,
           display: 'flex',
+          justifyContent: 'space-between',
           alignItems: 'center',
-          gap: 2,
         }}
       >
-
-        <Avatar
-          sx={{
-            width: 48,
-            height: 48,
-            bgcolor: '#ffffff',
-            color: '#3a8f2f',
-            border: '2px solid rgba(255,255,255,.5)',
-          }}
-        >
-          <AssessmentIcon />
-        </Avatar>
-
-        <Box>
+        <Box display="flex" alignItems="center" gap={2}>
+          <Avatar
+            sx={{
+              bgcolor: '#fff',
+              color: '#3a8f2f',
+            }}
+          >
+            <AssessmentIcon />
+          </Avatar>
 
           <Typography
             sx={{
@@ -96,145 +97,80 @@ export function ReportsPage(): React.JSX.Element {
           >
             RL Reports
           </Typography>
-
-          <Typography
-            sx={{
-              color: 'rgba(255,255,255,.8)',
-            }}
-          >
-            Download Tower Wise RL Report
-          </Typography>
-
         </Box>
 
+        <Button
+          variant="contained"
+          startIcon={<DownloadIcon />}
+          onClick={handleDownload}
+          sx={{
+            bgcolor: '#fff',
+            color: '#3a8f2f',
+            '&:hover': {
+              bgcolor: '#f5f5f5',
+            },
+          }}
+        >
+          Download Excel
+        </Button>
       </Box>
 
       <CardContent>
 
-        <Grid container spacing={3}>
+        <Grid container spacing={2}>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="From Date"
+              size="small"
               type="date"
+              label="From Date"
+              InputLabelProps={{ shrink: true }}
               value={fromDate}
               onChange={(e) => setFromDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid item xs={12} md={4}>
             <TextField
               fullWidth
-              label="To Date"
+              size="small"
               type="date"
+              label="To Date"
+              InputLabelProps={{ shrink: true }}
               value={toDate}
               onChange={(e) => setToDate(e.target.value)}
-              InputLabelProps={{ shrink: true }}
             />
           </Grid>
 
-          <Grid item xs={12} md={4}>
-            <TextField
+          <Grid
+            item
+            xs={12}
+            md={4}
+            display="flex"
+            alignItems="center"
+          >
+            <Button
               fullWidth
-              select
-              label="Tower"
-              value={tower}
-              onChange={(e) => setTower(e.target.value)}
+              variant="outlined"
+              startIcon={<PreviewIcon />}
+              onClick={handlePreview}
+              disabled={loading}
+              sx={{
+                height: 40,
+                borderColor: '#8dc63f',
+                color: '#3a8f2f',
+              }}
             >
-              <MenuItem value="">
-                Select Tower
-              </MenuItem>
-
-              <MenuItem value="Corp & Commercial">
-                Corp & Commercial
-              </MenuItem>
-
-              <MenuItem value="Retail Banking">
-                Retail Banking
-              </MenuItem>
-
-            </TextField>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              select
-              label="Application"
-              value={application}
-              onChange={(e) => setApplication(e.target.value)}
-            >
-              <MenuItem value="">
-                Select Application
-              </MenuItem>
-
-              <MenuItem value="Centricity">
-                Centricity
-              </MenuItem>
-
-              <MenuItem value="Clarity">
-                Clarity
-              </MenuItem>
-
-            </TextField>
-          </Grid>
-
-          <Grid item xs={12} md={4}>
-            <TextField
-              fullWidth
-              select
-              label="Associate"
-              value={associate}
-              onChange={(e) => setAssociate(e.target.value)}
-            >
-              <MenuItem value="">
-                All Associates
-              </MenuItem>
-            </TextField>
+              {loading ? 'Loading...' : 'Preview'}
+            </Button>
           </Grid>
 
         </Grid>
 
-        <Divider sx={{ my: 4 }} />
-
-        <Box
-          display="flex"
-          justifyContent="flex-end"
-          gap={2}
-        >
-
-          <Button
-            variant="outlined"
-            startIcon={<PreviewIcon />}
-            onClick={handlePreview}
-            sx={{
-              borderColor: '#8dc63f',
-              color: '#3a8f2f',
-            }}
-          >
-            Preview
-          </Button>
-
-          <Button
-            variant="contained"
-            startIcon={<DownloadIcon />}
-            onClick={handleDownload}
-            sx={{
-              background:
-                'linear-gradient(135deg,#8dc63f,#3a8f2f)',
-            }}
-          >
-            Download Excel
-          </Button>
-
-        </Box>
+        <ReportsTable rows={rows} />
 
       </CardContent>
-
     </Card>
-
   );
-
 }
