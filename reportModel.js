@@ -1,6 +1,10 @@
-const pool = require("../config/db");
+exports.getReport = async (
+  fromDate,
+  toDate,
+  towerId,
+  applicationId
+) => {
 
-exports.getReport = async (fromDate, toDate) => {
   const query = `
     SELECT
       effort_date,
@@ -12,10 +16,17 @@ exports.getReport = async (fromDate, toDate) => {
       effort_hours
     FROM resource_loading
     WHERE effort_date BETWEEN $1 AND $2
-    ORDER BY effort_date ASC, user_name ASC;
+      AND tower_id = $3
+      AND application_id = $4
+    ORDER BY effort_date ASC;
   `;
 
-  const result = await pool.query(query, [fromDate, toDate]);
+  const result = await pool.query(query, [
+    fromDate,
+    toDate,
+    towerId,
+    applicationId
+  ]);
 
   return result.rows;
 };
