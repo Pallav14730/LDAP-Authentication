@@ -28,19 +28,26 @@ export interface ReportRow {
 
 interface ReportsTableProps {
   rows: ReportRow[];
+  username: string;
 }
 
 export function ReportsTable({
   rows,
+  username,
 }: ReportsTableProps): React.JSX.Element {
 
-  const totalHours = rows.reduce(
+  // Filter rows based on selected username
+  const filteredRows = username
+    ? rows.filter((row) => row.user_name === username)
+    : rows;
+
+  const totalHours = filteredRows.reduce(
     (sum, row) => sum + Number(row.effort_hours),
     0
   );
 
   const totalAssociates = new Set(
-    rows.map((row) => row.user_name)
+    filteredRows.map((row) => row.user_name)
   ).size;
 
   return (
@@ -115,7 +122,7 @@ export function ReportsTable({
 
             <TableBody>
 
-              {rows.length === 0 ? (
+              {filteredRows.length === 0 ? (
 
                 <TableRow>
 
@@ -130,7 +137,7 @@ export function ReportsTable({
 
               ) : (
 
-                rows.map((row, index) => (
+                filteredRows.map((row, index) => (
 
                   <TableRow key={index} hover>
 
