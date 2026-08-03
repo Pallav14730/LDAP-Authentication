@@ -1,0 +1,24 @@
+React.useEffect(() => {
+
+  if (!towerId || !applicationId) {
+    setuserNames([]);
+    return;
+  }
+
+  const filteredUsers = applications.filter(
+    (item: any) =>
+      Number(item.tower_id) === Number(towerId) &&
+      Number(item.application_id) === Number(applicationId)
+  );
+
+  const uniqueUserNames = Array.from(
+    new Set(
+      filteredUsers.map((item: any) => item.user_name)
+    )
+  );
+
+  setuserNames(uniqueUserNames);
+
+  setuserName("");
+
+}, [towerId, applicationId, applications]);
