@@ -39,3 +39,22 @@ const uniqueApplications = React.useMemo(() => {
     ).values()
   );
 }, [allResources, groupId]);
+
+
+
+<Select
+  value={applicationId}
+  onChange={(event) => {
+    setApplicationId(String(event.target.value));
+  }}
+  input={<OutlinedInput label="Application" />}
+>
+  {uniqueApplications.map((app: any) => (
+    <MenuItem
+      key={String(app.application_id)}
+      value={String(app.application_id)}
+    >
+      {app.application_name}
+    </MenuItem>
+  ))}
+</Select>
