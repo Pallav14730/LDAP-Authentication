@@ -698,3 +698,54 @@ React.useEffect(() => {
   }
 }, [groupId, myResources]);
 
+
+
+
+
+React.useEffect(() => {
+  if (!groupId) {
+    setFilteredApplications([]);
+    setApplicationId("");
+    return;
+  }
+
+  const groupResources = myResources.filter(
+    (item: any) =>
+      String(item.group_id) === String(groupId)
+  );
+
+  console.log("Resources for selected group:", groupResources);
+
+  const uniqueApplications = Array.from(
+    new Map(
+      groupResources.map((item: any) => [
+        String(item.application_id),
+        {
+          application_id: item.application_id,
+          application_name: item.application_name,
+        },
+      ])
+    ).values()
+  );
+
+  console.log(
+    "Unique applications:",
+    uniqueApplications
+  );
+
+  setFilteredApplications(uniqueApplications);
+
+  // Automatically select if only one application exists
+  if (uniqueApplications.length === 1) {
+    setApplicationId(
+      String(uniqueApplications[0].application_id)
+    );
+  } else {
+    setApplicationId("");
+  }
+
+}, [groupId, myResources]);
+
+
+
+
