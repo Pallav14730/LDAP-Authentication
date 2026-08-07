@@ -1,0 +1,468 @@
+'use client';
+
+import * as React from 'react';
+import {
+  Avatar,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  MenuItem,
+  TextField,
+  Typography,
+} from '@mui/material';
+import AssessmentIcon from '@mui/icons-material/Assessment';
+import PreviewIcon from '@mui/icons-material/Preview';
+import DownloadIcon from '@mui/icons-material/Download';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+
+interface ResourceItem {
+  group_id: number | string;
+  group_name: string;
+  application_id: number | string;
+  application_name: string;
+  user_name?: string;
+}
+
+interface ReportRow {
+  effort_date: string;
+  user_name: string;
+  group_name?: string;
+  application_name: string;
+  activity: string;
+  sub_activity: string;
+  description: string;
+  effort_hours: number;
+  location_type?: string;
+}
+
+const API_BASE = 'http://localhost:3005'; // change if your backend is on a different port
+
+export function ReportsPage(): React.JSX.Element {
+  const [allResources, setAllResources] = React.useState<ResourceItem[]>([]);
+  const [rows, setRows] = React.useState<ReportRow[]>([]);
+  const [loading, setLoading] = React.useState(false);
+
+  const [fromDate, setFromDate] = React.useState('');
+  const [toDate, setToDate] = React.useState('');
+
+  const [groupId, setGroupId] = React.useState('');
+  const [applicationId, setApplicationId] = React.useState('');
+
+  const groupOptions = React.useMemo(() => {
+    const map = new Map<string, { group_id: string; group_name: string }>();
+
+    allResources.forEach((item) => {
+      if (item.group_id !== undefined && item.group_name) {
+        const id = String(item.group_id);
+        if (!map.has(id)) {
+          map.set(id, {
+            group_id: id,
+            group_name: item.group_name,
+          });
+        }
+      }
+    });
+
+    return Array.from(map.values());
+  }, [allResources]);
+
+  const applicationOptions = React.useMemo(() => {
+    if (!groupId) return [];
+
+    const map = new Map<
+      string,
+      { application_id: string; application_name: string }
+    >();
+
+    allResources
+      .filter((item) => String(item.group_id) === String(groupId))
+      .forEach((item) => {
+        if (item.application_id !== undefined && item.application_name) {
+          const id = String(item.application_id);
+          if (!map.has(id)) {
+            map.set(id, {
+              application_id: id,
+              application_name: item.application_name,
+            });
+          }
+        }
+      });
+
+    return Array.from(map.values());
+  }, [allResources, groupId]);
+
+  const loadAllResources = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/api/resources`);
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch resources: ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      const resources: ResourceItem[] = Array.isArray(data)
+        ? data
+        : data.data || [];
+
+      setAllResources(resources);
+    } catch (error) {
+      console.error('Error loading resources:', error);
+      setAllResources([]);
+    }
+  };
+
+  React.useEffect(() => {
+    loadAllResources();
+  }, []);
+
+  React.useEffect(() => {
+    if (groupOptions.length === 1 && !groupId) {
+      setGroupId(groupOptions[0].group_id);
+    }
+  }, [groupOptions, groupId]);
+
+  React.useEffect(() => {
+    if (!groupId) {
+      setApplicationId('');
+      return;
+    }
+
+    if (applicationOptions.length === 1) {
+      setApplicationId(applicationOptions[0].application_id);
+    } else {
+      setApplicationId('');
+    }
+  }, [groupId, applicationOptions]);
+
+  React.useEffect(() => {
+    setRows([]);
+  }, [fromDate, toDate, groupId, applicationId]);
+
+  const handlePreview = async () => {
+    if (!fromDate || !toDate) {
+      alert('Please select From Date and To Date');
+      return;
+    }
+
+    if (!groupId) {
+      alert('Please select Group');
+      return;
+    }
+
+    if (!applicationId) {
+      alert('Please select Application');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const params = new URLSearchParams({
+        fromDate,
+        toDate,
+        towerId: groupId, // keep this if your backend still expects towerId
+        applicationId,
+      });
+
+      const response = await fetch(
+        `${API_BASE}/api/report?${params.toString()}`
+      );
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch report: ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      const reportRows: ReportRow[] = Array.isArray(result)
+        ? result
+        : result.data || [];
+
+      setRows(reportRows);
+    } catch (err) {
+      console.error(err);
+      alert('Unable to load report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDownload = async () => {
+    if (!rows.length) {
+      alert('Please preview the report first.');
+      return;
+    }
+
+    const workbook = new ExcelJS.Workbook();
+    workbook.creator = 'RL Reports';
+
+    const worksheet = workbook.addWorksheet('Effort Report');
+
+    worksheet.columns = [
+      { header: 'Effort Date', key: 'effort_date', width: 16 },
+      { header: 'Group', key: 'group_name', width: 24 },
+      { header: 'Application', key: 'application_name', width: 24 },
+      { header: 'User Name', key: 'user_name', width: 24 },
+      { header: 'Activity', key: 'activity', width: 24 },
+      { header: 'Sub Activity', key: 'sub_activity', width: 24 },
+      { header: 'Description', key: 'description', width: 40 },
+      { header: 'Hours', key: 'effort_hours', width: 12 },
+      { header: 'Location Type', key: 'location_type', width: 16 },
+    ];
+
+    rows.forEach((row) => {
+      worksheet.addRow({
+        effort_date: row.effort_date ? new Date(row.effort_date) : null,
+        group_name: row.group_name || '',
+        application_name: row.application_name || '',
+        user_name: row.user_name || '',
+        activity: row.activity || '',
+        sub_activity: row.sub_activity || '',
+        description: row.description || '',
+        effort_hours: Number(row.effort_hours || 0),
+        location_type: row.location_type || '',
+      });
+    });
+
+    worksheet.getColumn('effort_date').numFmt = 'mm/dd/yyyy';
+
+    const headerRow = worksheet.getRow(1);
+    headerRow.height = 24;
+
+    headerRow.eachCell((cell) => {
+      cell.font = {
+        bold: true,
+        color: { argb: 'FFFFFFFF' },
+      };
+
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: 'FF8DC63F' },
+      };
+
+      cell.alignment = {
+        horizontal: 'center',
+        vertical: 'middle',
+      };
+
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' },
+      };
+    });
+
+    worksheet.eachRow((row, rowNumber) => {
+      if (rowNumber === 1) return;
+
+      row.eachCell((cell) => {
+        cell.alignment = {
+          horizontal: 'center',
+          vertical: 'middle',
+          wrapText: true,
+        };
+
+        cell.border = {
+          top: { style: 'thin' },
+          left: { style: 'thin' },
+          bottom: { style: 'thin' },
+          right: { style: 'thin' },
+        };
+      });
+    });
+
+    worksheet.columns.forEach((column) => {
+      let maxLength = 10;
+
+      column.eachCell?.({ includeEmpty: true }, (cell) => {
+        const value = cell.value ? cell.value.toString() : '';
+        maxLength = Math.max(maxLength, value.length);
+      });
+
+      column.width = Math.min(maxLength + 3, 45);
+    });
+
+    const buffer = await workbook.xlsx.writeBuffer();
+
+    saveAs(
+      new Blob([buffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      }),
+      `Effort_Report_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
+  };
+
+  return (
+    <Box>
+      <Card
+        sx={{
+          border: '1px solid rgba(141,198,63,0.22)',
+          boxShadow: '0 2px 12px rgba(141,198,63,0.08)',
+          borderRadius: 3,
+          overflow: 'hidden',
+        }}
+      >
+        <Box
+          sx={{
+            p: 2,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: 'linear-gradient(135deg,#8dc63f,#3a8f2f)',
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar
+              sx={{
+                bgcolor: '#fff',
+                color: '#3a8f2f',
+                width: 44,
+                height: 44,
+              }}
+            >
+              <AssessmentIcon />
+            </Avatar>
+
+            <Box>
+              <Typography
+                sx={{
+                  color: '#fff',
+                  fontWeight: 700,
+                  fontSize: '1.1rem',
+                }}
+              >
+                RL Reports
+              </Typography>
+              <Typography
+                sx={{
+                  color: 'rgba(255,255,255,0.8)',
+                  fontSize: '0.85rem',
+                }}
+              >
+                Generate Effort Reports
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+
+        <CardContent>
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                md: 'repeat(6, minmax(0, 1fr))',
+              },
+              gap: 2,
+              alignItems: 'start',
+            }}
+          >
+            <TextField
+              fullWidth
+              type="date"
+              size="small"
+              label="From Date"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              fullWidth
+              type="date"
+              size="small"
+              label="To Date"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+              InputLabelProps={{ shrink: true }}
+            />
+
+            <TextField
+              fullWidth
+              select
+              size="small"
+              label="Group"
+              value={groupId}
+              onChange={(e) => {
+                setGroupId(e.target.value);
+                setApplicationId('');
+              }}
+            >
+              <MenuItem value="">Select Group</MenuItem>
+              {groupOptions.map((group) => (
+                <MenuItem key={group.group_id} value={group.group_id}>
+                  {group.group_name}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <TextField
+              fullWidth
+              select
+              size="small"
+              label="Application"
+              value={applicationId}
+              onChange={(e) => setApplicationId(e.target.value)}
+              disabled={!groupId}
+            >
+              <MenuItem value="">Select Application</MenuItem>
+              {applicationOptions.map((app) => (
+                <MenuItem key={app.application_id} value={app.application_id}>
+                  {app.application_name}
+                </MenuItem>
+              ))}
+            </TextField>
+
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={
+                loading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <PreviewIcon />
+                )
+              }
+              disabled={loading}
+              onClick={handlePreview}
+              sx={{
+                height: 40,
+                background: '#3a8f2f',
+                '&:hover': {
+                  background: '#2f7627',
+                },
+              }}
+            >
+              {loading ? 'Loading...' : 'Preview'}
+            </Button>
+
+            <Button
+              fullWidth
+              variant="outlined"
+              startIcon={<DownloadIcon />}
+              disabled={!rows.length}
+              onClick={handleDownload}
+              sx={{
+                height: 40,
+                color: '#3a8f2f',
+                borderColor: '#3a8f2f',
+                '&:hover': {
+                  borderColor: '#3a8f2f',
+                  backgroundColor: 'rgba(58,143,47,0.08)',
+                },
+              }}
+            >
+              Download Excel
+            </Button>
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+}
