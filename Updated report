@@ -619,6 +619,42 @@ const handleGroupChange = (event: any) => {
 
 
 
+React.useEffect(() => {
+  if (!groupId || !allResources.length) {
+    setApplications([]);
+    setApplicationId("");
+    return;
+  }
+
+  console.log("Selected Group ID:", groupId);
+
+  const filteredApplications = allResources
+    .filter(
+      (resource: any) =>
+        String(resource.group_id) === String(groupId)
+    )
+    .map((resource: any) => ({
+      application_id: resource.application_id,
+      application_name: resource.application_name,
+    }))
+    .filter(
+      (app: any, index: number, self: any[]) =>
+        index ===
+        self.findIndex(
+          (x: any) =>
+            String(x.application_id) === String(app.application_id)
+        )
+    );
+
+  console.log("Applications for selected group:", filteredApplications);
+
+  setApplications(filteredApplications);
+  setApplicationId("");
+}, [groupId, allResources]);
+
+
+
+
 
 
 
