@@ -547,3 +547,58 @@ const filteredUserNames = React.useMemo(() => {
 
 
 
+
+const handleGroupChange = (event: any) => {
+  const selectedGroupId = String(event.target.value);
+
+  setTowerId(selectedGroupId);
+
+  // Reset application and resources
+  setApplicationId("");
+  setSelectedUserNames([]);
+
+  // Find applications for selected group
+  const groupApplications = allResources.filter(
+    (resource: any) =>
+      String(resource.group_id) === selectedGroupId
+  );
+
+  // Remove duplicate applications
+  const uniqueApplications = Array.from(
+    new Map(
+      groupApplications.map((resource: any) => [
+        resource.application_id,
+        {
+          application_id: resource.application_id,
+          application_name: resource.application_name,
+        },
+      ])
+    ).values()
+  );
+
+  console.log("Applications for selected group:", uniqueApplications);
+
+  setFilteredApplications(uniqueApplications);
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
