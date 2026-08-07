@@ -310,5 +310,47 @@ const response = await fetch(
 );
 
 
+<TextField
+  select
+  fullWidth
+  label="Resources"
+  value={selectedUserNames}
+  onChange={(event) => {
+    const value = event.target.value;
 
+    if (typeof value === "string") {
+      setSelectedUserNames(value.split(","));
+    } else {
+      setSelectedUserNames(value as string[]);
+    }
+  }}
+  slotProps={{
+    select: {
+      multiple: true,
+      renderValue: (selected) => {
+        const values = selected as string[];
+
+        if (values.length === 0) {
+          return "All Users";
+        }
+
+        return values.join(", ");
+      },
+    },
+  }}
+>
+  {/* All Users */}
+  <MenuItem value="">
+    <Checkbox checked={selectedUserNames.length === 0} />
+    <ListItemText primary="All Users" />
+  </MenuItem>
+
+  {/* Individual users */}
+  {usernames.map((name) => (
+    <MenuItem key={name} value={name}>
+      <Checkbox checked={selectedUserNames.includes(name)} />
+      <ListItemText primary={name} />
+    </MenuItem>
+  ))}
+</TextField>
 
