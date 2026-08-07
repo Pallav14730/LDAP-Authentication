@@ -58,3 +58,38 @@ const uniqueApplications = React.useMemo(() => {
     </MenuItem>
   ))}
 </Select>
+
+
+
+
+
+
+const groupApplications = React.useMemo(() => {
+  if (!groupId) {
+    return [];
+  }
+
+  const applications = allResources.filter(
+    (resource: any) =>
+      String(resource.group_id) === String(groupId)
+  );
+
+  const uniqueApplications = Array.from(
+    new Map(
+      applications.map((resource: any) => [
+        String(resource.application_id),
+        {
+          application_id: resource.application_id,
+          application_name: resource.application_name,
+        },
+      ])
+    ).values()
+  );
+
+  console.log(
+    "Applications for selected group:",
+    uniqueApplications
+  );
+
+  return uniqueApplications;
+}, [allResources, groupId]);
