@@ -130,3 +130,27 @@ const userGroups = React.useMemo(() => {
 
   return uniqueGroups;
 }, [allResources]);
+
+
+
+
+
+
+const uniqueApplications: Application[] = Array.from(
+  new Map<number, Application>(
+    myResources
+      .filter(
+        (item: any) =>
+          item.application_id != null &&
+          item.application_name
+      )
+      .map((item: any) => [
+        Number(item.application_id),
+        {
+          application_id: Number(item.application_id),
+          application_name: item.application_name,
+        },
+      ])
+  ).values()
+);
+
