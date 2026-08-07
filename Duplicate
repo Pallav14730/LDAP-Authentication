@@ -93,3 +93,40 @@ const groupApplications = React.useMemo(() => {
 
   return uniqueApplications;
 }, [allResources, groupId]);
+
+
+
+
+
+
+
+
+const userGroups = React.useMemo(() => {
+  const loggedInUserName = getLoggedInUserName();
+
+  if (!loggedInUserName) {
+    return [];
+  }
+
+  const userResources = allResources.filter(
+    (resource: any) =>
+      String(resource.user_name).toLowerCase() ===
+      String(loggedInUserName).toLowerCase()
+  );
+
+  const uniqueGroups = Array.from(
+    new Map(
+      userResources.map((resource: any) => [
+        String(resource.group_id),
+        {
+          group_id: resource.group_id,
+          group_name: resource.group_name,
+        },
+      ])
+    ).values()
+  );
+
+  console.log("Groups assigned to logged-in user:", uniqueGroups);
+
+  return uniqueGroups;
+}, [allResources]);
