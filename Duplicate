@@ -154,3 +154,63 @@ const uniqueApplications: Application[] = Array.from(
   ).values()
 );
 
+
+
+
+
+<Grid
+  size={{
+    xs: 12,
+    md: 2,
+  }}
+>
+  <FormControl fullWidth size="small">
+    <InputLabel>Applications</InputLabel>
+
+    <Select
+      multiple
+      value={applicationIds}
+      onChange={(event) => {
+        const value = event.target.value;
+
+        setApplicationIds(
+          typeof value === "string"
+            ? value.split(",")
+            : value
+        );
+      }}
+      input={<OutlinedInput label="Applications" />}
+      renderValue={(selected) =>
+        selected.length === 0
+          ? "Select Applications"
+          : selected
+              .map(
+                (id) =>
+                  filteredApplications.find(
+                    (app) =>
+                      String(app.application_id) === String(id)
+                  )?.application_name
+              )
+              .filter(Boolean)
+              .join(", ")
+      }
+    >
+      {filteredApplications.map((app) => (
+        <MenuItem
+          key={String(app.application_id)}
+          value={String(app.application_id)}
+        >
+          <Checkbox
+            checked={applicationIds.includes(
+              String(app.application_id)
+            )}
+          />
+
+          <ListItemText
+            primary={app.application_name}
+          />
+        </MenuItem>
+      ))}
+    </Select>
+  </FormControl>
+</Grid>
