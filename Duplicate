@@ -1,0 +1,18 @@
+const groupResources = allResources.filter(
+  (resource: any) =>
+    String(resource.group_id) === String(groupId)
+);
+
+const uniqueApplications = Array.from(
+  new Map(
+    groupResources.map((resource: any) => [
+      String(resource.application_id),
+      {
+        application_id: resource.application_id,
+        application_name: resource.application_name,
+      },
+    ])
+  ).values()
+);
+
+setFilteredApplications(uniqueApplications);
