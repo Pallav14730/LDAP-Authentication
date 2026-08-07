@@ -749,3 +749,56 @@ React.useEffect(() => {
 
 
 
+
+
+
+
+
+
+
+
+
+
+React.useEffect(() => {
+  if (!towerId) {
+    setFilteredApplications([]);
+    setUserNames([]);
+    setApplicationId("");
+    setSelectedUserNames([]);
+    return;
+  }
+
+  // Applications belonging to selected tower
+  const towerResources = applications.filter(
+    (item: any) =>
+      String(item.tower_id) === String(towerId)
+  );
+
+  // Remove duplicate applications
+  const uniqueApplications = Array.from(
+    new Map(
+      towerResources.map((item: any) => [
+        String(item.application_id),
+        {
+          application_id: item.application_id,
+          application_name: item.application_name,
+        },
+      ])
+    ).values()
+  );
+
+  console.log(
+    "Applications for selected tower:",
+    uniqueApplications
+  );
+
+  setFilteredApplications(uniqueApplications);
+
+  // Reset application when tower changes
+  setApplicationId("");
+
+  // Reset users
+  setUserNames([]);
+  setSelectedUserNames([]);
+
+}, [towerId, applications]);
