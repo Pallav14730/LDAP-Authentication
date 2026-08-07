@@ -802,3 +802,51 @@ React.useEffect(() => {
   setSelectedUserNames([]);
 
 }, [towerId, applications]);
+
+
+
+
+
+
+React.useEffect(() => {
+  if (!towerId) {
+    setFilteredApplications([]);
+    setUserNames([]);
+    setApplicationId("");
+    setSelectedUserNames([]);
+    return;
+  }
+
+  // Get resources belonging to selected tower
+  const towerResources = applications.filter(
+    (item: Resource) =>
+      String(item.tower_id) === String(towerId)
+  );
+
+  console.log("Resources for selected tower:", towerResources);
+
+  // Remove duplicate applications
+  const uniqueApplications = Array.from(
+    new Map(
+      towerResources.map((item: Resource) => [
+        String(item.application_id),
+        item
+      ])
+    ).values()
+  );
+
+  console.log(
+    "Unique applications:",
+    uniqueApplications
+  );
+
+  setFilteredApplications(uniqueApplications);
+
+  // Reset application
+  setApplicationId("");
+
+  // Reset users
+  setUserNames([]);
+  setSelectedUserNames([]);
+
+}, [towerId, applications]);
