@@ -16,3 +16,26 @@ const uniqueApplications = Array.from(
 );
 
 setFilteredApplications(uniqueApplications);
+
+
+
+const uniqueApplications = React.useMemo(() => {
+  if (!groupId) return [];
+
+  const groupResources = allResources.filter(
+    (resource: any) =>
+      String(resource.group_id) === String(groupId)
+  );
+
+  return Array.from(
+    new Map(
+      groupResources.map((resource: any) => [
+        String(resource.application_id),
+        {
+          application_id: resource.application_id,
+          application_name: resource.application_name,
+        },
+      ])
+    ).values()
+  );
+}, [allResources, groupId]);
