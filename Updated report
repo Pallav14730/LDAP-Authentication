@@ -590,7 +590,28 @@ const handleGroupChange = (event: any) => {
 
 
 
+<FormControl fullWidth>
+  <InputLabel>Application</InputLabel>
 
+  <Select
+    value={applicationId}
+    label="Application"
+    onChange={(event) => {
+      setApplicationId(String(event.target.value));
+      setSelectedUserNames([]);
+    }}
+    disabled={!towerId}
+  >
+    {filteredApplications.map((app: any) => (
+      <MenuItem
+        key={app.application_id}
+        value={app.application_id}
+      >
+        {app.application_name}
+      </MenuItem>
+    ))}
+  </Select>
+</FormControl>
 
 
 
