@@ -323,3 +323,131 @@ const uniqueApplications: Application[] = Array.from(
     })}
   </TextField>
 </Grid>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<Grid
+  size={{
+    xs: 12,
+    md: 2,
+  }}
+>
+  <TextField
+    fullWidth
+    select
+    size="small"
+    label="Groups"
+    value={groupIds}
+    slotProps={{
+      select: {
+        multiple: true,
+
+        renderValue: (selected) => {
+          const values = selected as string[];
+
+          if (values.length === 0) {
+            return "Select Groups";
+          }
+
+          if (
+            userTowers.length > 0 &&
+            values.length === userTowers.length
+          ) {
+            return "All Groups";
+          }
+
+          return values
+            .map(
+              (id) =>
+                userTowers.find(
+                  (group: any) =>
+                    String(group.group_id) === String(id)
+                )?.group_name
+            )
+            .filter(Boolean)
+            .join(", ");
+        },
+      },
+    }}
+    onChange={(event) => {
+      const value = event.target.value;
+
+      setGroupIds(
+        typeof value === "string"
+          ? value.split(",")
+          : value
+      );
+    }}
+  >
+    {/* ========================= */}
+    {/* ALL GROUPS */}
+    {/* ========================= */}
+
+    <MenuItem
+      value="__ALL_GROUPS__"
+      onClick={(event) => {
+        event.preventDefault();
+
+        const allGroupIds = userTowers.map(
+          (group: any) =>
+            String(group.group_id)
+        );
+
+        const allSelected =
+          groupIds.length === allGroupIds.length;
+
+        setGroupIds(
+          allSelected ? [] : allGroupIds
+        );
+
+        // Clear applications when groups change
+        setApplicationIds([]);
+      }}
+    >
+      <Checkbox
+        checked={
+          userTowers.length > 0 &&
+          groupIds.length === userTowers.length
+        }
+      />
+
+      <ListItemText primary="All Groups" />
+    </MenuItem>
+
+    {/* ========================= */}
+    {/* INDIVIDUAL GROUPS */}
+    {/* ========================= */}
+
+    {userTowers.map((group: any) => {
+      const id = String(group.group_id);
+
+      return (
+        <MenuItem
+          key={id}
+          value={id}
+        >
+          <Checkbox
+            checked={groupIds.includes(id)}
+          />
+
+          <ListItemText
+            primary={group.group_name}
+          />
+        </MenuItem>
+      );
+    })}
+  </TextField>
+</Grid>
