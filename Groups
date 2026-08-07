@@ -1,0 +1,939 @@
+'use client';
+
+import * as React from 'react';
+
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
+  TextField,
+  Typography,
+} from '@mui/material';
+
+import PreviewIcon from '@mui/icons-material/Preview';
+
+
+// ============================================================
+// TYPES
+// ============================================================
+
+interface Resource {
+  rl_user_id?: number | string;
+  user_id?: number | string;
+
+  user_name?: string;
+  email?: string;
+
+  group_id: number | string;
+  group_name: string;
+
+  tower_id?: number | string;
+  tower_name?: string;
+
+  application_id: number | string;
+  application_name: string;
+
+  location_type?: string;
+}
+
+interface GroupOption {
+  group_id: string;
+  group_name: string;
+}
+
+interface ApplicationOption {
+  application_id: string;
+  application_name: string;
+}
+
+interface LoggedInUser {
+  id?: string | number;
+  user_id?: string | number;
+  email?: string;
+  user_name?: string;
+  username?: string;
+  user_role?: number | string;
+}
+
+
+// ============================================================
+// API
+// ============================================================
+
+const API_BASE = 'http://localhost:3000';
+
+
+// ============================================================
+// COMPONENT
+// ============================================================
+
+export default function ReportsPage(): React.JSX.Element {
+  // ----------------------------------------------------------
+  // AUTH / ROLE
+  // ----------------------------------------------------------
+
+  const [userRole, setUserRole] = React.useState<number | null>(null);
+  const [loggedInUser, setLoggedInUser] =
+    React.useState<LoggedInUser | null>(null);
+
+  const [checkingAccess, setCheckingAccess] =
+    React.useState(true);
+
+  // ----------------------------------------------------------
+  // RESOURCES
+  // ----------------------------------------------------------
+
+  const [allResources, setAllResources] =
+    React.useState<Resource[]>([]);
+
+  const [loadingResources, setLoadingResources] =
+    React.useState(false);
+
+  // ----------------------------------------------------------
+  // FILTERS
+  // ----------------------------------------------------------
+
+  const [fromDate, setFromDate] = React.useState('');
+  const [toDate, setToDate] = React.useState('');
+
+  const [groupId, setGroupId] =
+    React.useState('');
+
+  const [applicationId, setApplicationId] =
+    React.useState('');
+
+  // ----------------------------------------------------------
+  // REPORT
+  // ----------------------------------------------------------
+
+  const [loadingPreview, setLoadingPreview] =
+    React.useState(false);
+
+  const [previewMessage, setPreviewMessage] =
+    React.useState('');
+
+  const [errorMessage, setErrorMessage] =
+    React.useState('');
+
+  // ==========================================================
+  // GET LOGGED-IN USER FROM TOKEN
+  // ==========================================================
+
+  const getLoggedInUserFromToken = (): LoggedInUser | null => {
+    try {
+      const token = localStorage.getItem(
+        'custom-auth-token'
+      );
+
+      if (!token) {
+        console.log('No custom-auth-token found');
+        return null;
+      }
+
+      const parsedToken = JSON.parse(token);
+
+      console.log(
+        'Logged-in user from token:',
+        parsedToken
+      );
+
+      /*
+       * Depending on your login response, the user may be
+       * directly inside the token or inside a user object.
+       */
+
+      const user =
+        parsedToken?.user ||
+        parsedToken?.data ||
+        parsedToken;
+
+      return {
+        id: user?.id,
+        user_id: user?.user_id,
+        email: user?.email,
+        user_name: user?.user_name,
+        username: user?.username,
+        user_role: user?.user_role,
+      };
+    } catch (error) {
+      console.error(
+        'Error reading logged-in user token:',
+        error
+      );
+
+      return null;
+    }
+  };
+
+
+  // ==========================================================
+  // CHECK USER ROLE
+  // ==========================================================
+
+  const checkUserRole = async () => {
+    try {
+      setCheckingAccess(true);
+      setErrorMessage('');
+
+      const currentUser =
+        getLoggedInUserFromToken();
+
+      if (!currentUser) {
+        setUserRole(0);
+        return;
+      }
+
+      setLoggedInUser(currentUser);
+
+      console.log(
+        'Logged-in user:',
+        currentUser
+      );
+
+      // ------------------------------------------------------
+      // GET USERS
+      // ------------------------------------------------------
+
+      const response = await fetch(
+        `${API_BASE}/api/users`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch users: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+
+      console.log(
+        'Users API response:',
+        result
+      );
+
+      const users: any[] = Array.isArray(result)
+        ? result
+        : result?.data || [];
+
+      // ------------------------------------------------------
+      // FIND CURRENT USER
+      // ------------------------------------------------------
+
+      const currentEmail =
+        currentUser.email?.toLowerCase();
+
+      const currentUserId =
+        String(
+          currentUser.id ??
+          currentUser.user_id ??
+          ''
+        );
+
+      const matchedUser = users.find(
+        (user: any) => {
+          const apiEmail =
+            String(
+              user.email ??
+              user.user_email ??
+              ''
+            ).toLowerCase();
+
+          const apiUserId =
+            String(
+              user.id ??
+              user.user_id ??
+              ''
+            );
+
+          return (
+            (currentEmail &&
+              apiEmail &&
+              currentEmail === apiEmail) ||
+            (currentUserId &&
+              currentUserId !== '' &&
+              currentUserId === apiUserId)
+          );
+        }
+      );
+
+      console.log(
+        'Matched logged-in user:',
+        matchedUser
+      );
+
+      if (!matchedUser) {
+        console.error(
+          'Logged-in user not found in /api/users'
+        );
+
+        setUserRole(0);
+        return;
+      }
+
+      const role = Number(
+        matchedUser.user_role
+      );
+
+      console.log(
+        'Logged-in user role:',
+        role
+      );
+
+      setUserRole(role);
+
+    } catch (error) {
+      console.error(
+        'Error checking user role:',
+        error
+      );
+
+      setUserRole(0);
+
+      setErrorMessage(
+        'Unable to verify your reporting access.'
+      );
+    } finally {
+      setCheckingAccess(false);
+    }
+  };
+
+
+  // ==========================================================
+  // LOAD RESOURCES
+  // ==========================================================
+
+  const loadResources = async (
+    currentUser: LoggedInUser
+  ) => {
+    try {
+      setLoadingResources(true);
+
+      const response = await fetch(
+        `${API_BASE}/api/resources`
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          `Failed to fetch resources: ${response.status}`
+        );
+      }
+
+      const result = await response.json();
+
+      console.log(
+        'ALL RESOURCES API RESPONSE:',
+        result
+      );
+
+      const resources: Resource[] =
+        Array.isArray(result)
+          ? result
+          : result?.data || [];
+
+      console.log(
+        'Total resources:',
+        resources.length
+      );
+
+      // ------------------------------------------------------
+      // FIND LOGGED-IN USER'S RESOURCES
+      // ------------------------------------------------------
+
+      const loggedInEmail =
+        currentUser.email?.toLowerCase();
+
+      const loggedInUserName =
+        currentUser.user_name ||
+        currentUser.username;
+
+      const loggedInId = String(
+        currentUser.id ??
+        currentUser.user_id ??
+        ''
+      );
+
+      /*
+       * First try user ID.
+       * Then email.
+       * Then username.
+       */
+
+      let userResources = resources.filter(
+        (resource: any) => {
+          const resourceUserId =
+            String(
+              resource.user_id ??
+              resource.rl_user_id ??
+              ''
+            );
+
+          if (
+            loggedInId &&
+            resourceUserId &&
+            loggedInId === resourceUserId
+          ) {
+            return true;
+          }
+
+          const resourceEmail =
+            String(
+              resource.email ?? ''
+            ).toLowerCase();
+
+          if (
+            loggedInEmail &&
+            resourceEmail &&
+            loggedInEmail === resourceEmail
+          ) {
+            return true;
+          }
+
+          if (
+            loggedInUserName &&
+            resource.user_name
+          ) {
+            return (
+              String(
+                resource.user_name
+              ).toLowerCase() ===
+              String(
+                loggedInUserName
+              ).toLowerCase()
+            );
+          }
+
+          return false;
+        }
+      );
+
+      console.log(
+        'Resources assigned to logged-in user:',
+        userResources
+      );
+
+      /*
+       * IMPORTANT:
+       *
+       * If your /api/resources does NOT contain user_id/email
+       * and the username doesn't match, you can temporarily
+       * inspect the API data with:
+       *
+       * console.log(resources);
+       *
+       * and adjust the matching field.
+       */
+
+      setAllResources(userResources);
+
+    } catch (error) {
+      console.error(
+        'Error loading resources:',
+        error
+      );
+
+      setAllResources([]);
+
+      setErrorMessage(
+        'Unable to load your Group and Application data.'
+      );
+    } finally {
+      setLoadingResources(false);
+    }
+  };
+
+
+  // ==========================================================
+  // INITIAL LOAD
+  // ==========================================================
+
+  React.useEffect(() => {
+    const initialize = async () => {
+      await checkUserRole();
+    };
+
+    initialize();
+  }, []);
+
+
+  // ==========================================================
+  // LOAD RESOURCES AFTER ROLE IS VERIFIED
+  // ==========================================================
+
+  React.useEffect(() => {
+    if (
+      userRole === 1 &&
+      loggedInUser
+    ) {
+      loadResources(loggedInUser);
+    }
+  }, [userRole, loggedInUser]);
+
+
+  // ==========================================================
+  // UNIQUE GROUPS
+  // ==========================================================
+
+  const groupOptions =
+    React.useMemo<GroupOption[]>(() => {
+      const groupMap =
+        new Map<string, GroupOption>();
+
+      allResources.forEach(
+        (resource) => {
+          if (
+            resource.group_id !== undefined &&
+            resource.group_name
+          ) {
+            const id =
+              String(resource.group_id);
+
+            if (!groupMap.has(id)) {
+              groupMap.set(
+                id,
+                {
+                  group_id: id,
+                  group_name:
+                    resource.group_name,
+                }
+              );
+            }
+          }
+        }
+      );
+
+      return Array.from(
+        groupMap.values()
+      );
+    }, [allResources]);
+
+
+  // ==========================================================
+  // APPLICATIONS FOR SELECTED GROUP
+  // ==========================================================
+
+  const applicationOptions =
+    React.useMemo<ApplicationOption[]>(() => {
+      if (!groupId) {
+        return [];
+      }
+
+      const applicationMap =
+        new Map<
+          string,
+          ApplicationOption
+        >();
+
+      allResources
+        .filter(
+          (resource) =>
+            String(
+              resource.group_id
+            ) === String(groupId)
+        )
+        .forEach(
+          (resource) => {
+            const id =
+              String(
+                resource.application_id
+              );
+
+            if (
+              !applicationMap.has(id)
+            ) {
+              applicationMap.set(
+                id,
+                {
+                  application_id: id,
+                  application_name:
+                    resource.application_name,
+                }
+              );
+            }
+          }
+        );
+
+      return Array.from(
+        applicationMap.values()
+      );
+    }, [
+      allResources,
+      groupId,
+    ]);
+
+
+  // ==========================================================
+  // GROUP CHANGE
+  // ==========================================================
+
+  const handleGroupChange = (
+    event: any
+  ) => {
+    const selectedGroupId =
+      String(event.target.value);
+
+    console.log(
+      'Selected Group ID:',
+      selectedGroupId
+    );
+
+    setGroupId(
+      selectedGroupId
+    );
+
+    // Reset application
+    setApplicationId('');
+
+    // Reset previous preview
+    setPreviewMessage('');
+  };
+
+
+  // ==========================================================
+  // APPLICATION CHANGE
+  // ==========================================================
+
+  const handleApplicationChange = (
+    event: any
+  ) => {
+    const selectedApplicationId =
+      String(event.target.value);
+
+    console.log(
+      'Selected Application ID:',
+      selectedApplicationId
+    );
+
+    setApplicationId(
+      selectedApplicationId
+    );
+
+    setPreviewMessage('');
+  };
+
+
+  // ==========================================================
+  // PREVIEW REPORT
+  // ==========================================================
+
+  const handlePreview = async () => {
+    setErrorMessage('');
+    setPreviewMessage('');
+
+    if (!fromDate) {
+      alert(
+        'Please select From Date'
+      );
+      return;
+    }
+
+    if (!toDate) {
+      alert(
+        'Please select To Date'
+      );
+      return;
+    }
+
+    if (!groupId) {
+      alert(
+        'Please select Group'
+      );
+      return;
+    }
+
+    if (!applicationId) {
+      alert(
+        'Please select Application'
+      );
+      return;
+    }
+
+    try {
+      setLoadingPreview(true);
+
+      const params =
+        new URLSearchParams();
+
+      params.append(
+        'fromDate',
+        fromDate
+      );
+
+      params.append(
+        'toDate',
+        toDate
+      );
+
+      /*
+       * Your existing backend was using towerId.
+       *
+       * We are sending the selected group_id through
+       * towerId so your existing backend doesn't need
+       * to be changed.
+       */
+
+      params.append(
+        'towerId',
+        groupId
+      );
+
+      params.append(
+        'applicationId',
+        applicationId
+      );
+
+      const url =
+        `${API_BASE}/api/report?${params.toString()}`;
+
+      console.log(
+        'REPORT API URL:',
+        url
+      );
+
+      const response =
+        await fetch(url);
+
+      const result =
+        await response.json();
+
+      console.log(
+        'REPORT API RESPONSE:',
+        result
+      );
+
+      if (!response.ok) {
+        throw new Error(
+          result?.message ||
+          'Failed to fetch report'
+        );
+      }
+
+      const reportRows =
+        Array.isArray(result)
+          ? result
+          : result?.data || [];
+
+      console.log(
+        'Report rows:',
+        reportRows
+      );
+
+      /*
+       * No table is displayed.
+       *
+       * We only show a success message so you know
+       * the Preview request worked.
+       */
+
+      setPreviewMessage(
+        `Report loaded successfully. ${reportRows.length} record(s) found.`
+      );
+
+    } catch (error: any) {
+      console.error(
+        'Preview error:',
+        error
+      );
+
+      setErrorMessage(
+        error?.message ||
+        'Failed to fetch report'
+      );
+    } finally {
+      setLoadingPreview(false);
+    }
+  };
+
+
+  // ==========================================================
+  // ROLE CHECKING
+  // ==========================================================
+
+  if (checkingAccess) {
+    return (
+      <Box
+        sx={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          minHeight: 250,
+        }}
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+
+  // ==========================================================
+  // ONLY SPOC / ROLE 1 CAN SEE REPORTING
+  // ==========================================================
+
+  if (userRole !== 1) {
+    return null;
+  }
+
+
+  // ==========================================================
+  // UI
+  // ==========================================================
+
+  return (
+    <Box>
+      <Card
+        sx={{
+          borderRadius: 3,
+          boxShadow:
+            '0 2px 12px rgba(0,0,0,0.08)',
+        }}
+      >
+        <CardContent>
+          <Typography
+            variant="h6"
+            sx={{
+              fontWeight: 700,
+              mb: 3,
+            }}
+          >
+            Reporting
+          </Typography>
+
+          {errorMessage && (
+            <Alert
+              severity="error"
+              sx={{ mb: 2 }}
+            >
+              {errorMessage}
+            </Alert>
+          )}
+
+          {previewMessage && (
+            <Alert
+              severity="success"
+              sx={{ mb: 2 }}
+            >
+              {previewMessage}
+            </Alert>
+          )}
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: {
+                xs: '1fr',
+                sm: 'repeat(2, 1fr)',
+                md: 'repeat(5, 1fr)',
+              },
+              gap: 2,
+              alignItems: 'center',
+            }}
+          >
+
+            {/* FROM DATE */}
+
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="From Date"
+              value={fromDate}
+              onChange={(event) =>
+                setFromDate(
+                  event.target.value
+                )
+              }
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
+
+
+            {/* TO DATE */}
+
+            <TextField
+              fullWidth
+              size="small"
+              type="date"
+              label="To Date"
+              value={toDate}
+              onChange={(event) =>
+                setToDate(
+                  event.target.value
+                )
+              }
+              InputLabelProps={{
+                shrink: true,
+              }}
+            />
+
+
+            {/* GROUP */}
+
+            <FormControl
+              fullWidth
+              size="small"
+              disabled={
+                loadingResources
+              }
+            >
+              <InputLabel>
+                Group
+              </InputLabel>
+
+              <Select
+                value={groupId}
+                label="Group"
+                onChange={
+                  handleGroupChange
+                }
+              >
+                <MenuItem value="">
+                  Select Group
+                </MenuItem>
+
+                {groupOptions.map(
+                  (group) => (
+                    <MenuItem
+                      key={
+                        group.group_id
+                      }
+                      value={
+                        group.group_id
+                      }
+                    >
+                      {group.group_name}
+                    </MenuItem>
+                  )
+                )}
+              </Select>
+            </FormControl>
+
+
+            {/* APPLICATION */}
+
+            <FormControl
+              fullWidth
+              size="small"
+              disabled={
+                !groupId ||
+                loadingResources
+              }
+            >
+              <InputLabel>
+                Application
+              </InputLabel>
+
+              <Select
+                value={
+                  applicationId
+                }
+                label="Application"
+                onChange={
+                  handleApplicationChange
+    
