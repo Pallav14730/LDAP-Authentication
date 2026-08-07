@@ -518,3 +518,32 @@ const loadAllResources = async () => {
 
   </Select>
 </FormControl>
+
+
+
+
+
+const filteredUserNames = React.useMemo(() => {
+  if (!towerId || !applicationId) {
+    return [];
+  }
+
+  const names = allResources
+    .filter(
+      (resource) =>
+        String(resource.tower_id) === String(towerId) &&
+        String(resource.application_id) === String(applicationId)
+    )
+    .map((resource) => resource.user_name)
+    .filter(Boolean);
+
+  return Array.from(new Set(names));
+}, [allResources, towerId, applicationId]);
+
+
+
+
+
+
+
+
