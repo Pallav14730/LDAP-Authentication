@@ -214,3 +214,112 @@ const uniqueApplications: Application[] = Array.from(
     </Select>
   </FormControl>
 </Grid>
+
+
+
+
+
+<Grid
+  size={{
+    xs: 12,
+    md: 2,
+  }}
+>
+  <TextField
+    fullWidth
+    select
+    size="small"
+    label="Applications"
+    value={applicationIds}
+    slotProps={{
+      select: {
+        multiple: true,
+        renderValue: (selected) => {
+          const values = selected as string[];
+
+          if (values.length === 0) {
+            return "Select Applications";
+          }
+
+          if (
+            filteredApplications.length > 0 &&
+            values.length === filteredApplications.length
+          ) {
+            return "All Applications";
+          }
+
+          return values
+            .map(
+              (id) =>
+                filteredApplications.find(
+                  (app) =>
+                    String(app.application_id) === String(id)
+                )?.application_name
+            )
+            .filter(Boolean)
+            .join(", ");
+        },
+      },
+    }}
+    onChange={(event) => {
+      const value = event.target.value;
+
+      setApplicationIds(
+        typeof value === "string"
+          ? value.split(",")
+          : value
+      );
+    }}
+  >
+    {/* All Applications */}
+    <MenuItem
+      value="__ALL__"
+      onClick={(event) => {
+        event.preventDefault();
+
+        const allApplicationIds =
+          filteredApplications.map((app) =>
+            String(app.application_id)
+          );
+
+        const allSelected =
+          applicationIds.length ===
+          allApplicationIds.length;
+
+        setApplicationIds(
+          allSelected ? [] : allApplicationIds
+        );
+      }}
+    >
+      <Checkbox
+        checked={
+          filteredApplications.length > 0 &&
+          applicationIds.length ===
+            filteredApplications.length
+        }
+      />
+
+      <ListItemText primary="All Applications" />
+    </MenuItem>
+
+    {/* Individual Applications */}
+    {filteredApplications.map((app) => {
+      const id = String(app.application_id);
+
+      return (
+        <MenuItem
+          key={id}
+          value={id}
+        >
+          <Checkbox
+            checked={applicationIds.includes(id)}
+          />
+
+          <ListItemText
+            primary={app.application_name}
+          />
+        </MenuItem>
+      );
+    })}
+  </TextField>
+</Grid>
