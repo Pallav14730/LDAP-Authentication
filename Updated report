@@ -1,0 +1,314 @@
+const [loggedInUserId, setLoggedInUserId] = useState<number | null>(null);
+
+const [userTowers, setUserTowers] = useState<any[]>([]);
+
+const [applications, setApplications] = useState<any[]>([]);
+
+const [filteredApplications, setFilteredApplications] = useState<any[]>([]);
+
+const [userNames, setUserNames] = useState<string[]>([]);
+
+const [selectedUserNames, setSelectedUserNames] = useState<string[]>([]);
+
+
+const loadLoggedInUserResources = async () => {
+  try {
+    // Get logged-in user from localStorage token
+    const token = localStorage.getItem("custom-auth-token");
+
+    if (!token) {
+      console.error("No authentication token found");
+      return;
+    }
+
+    const loggedInUser = JSON.parse(token);
+
+    console.log("Logged-in token user:", loggedInUser);
+
+    const email =
+      loggedInUser.email ||
+      loggedInUser.email_id;
+
+    if (!email) {
+      console.error("Email not found in authentication token");
+      return;
+    }
+
+    // Get users
+    const usersResponse = await fetch(
+      "http://localhost:3000/api/users"
+    );
+
+    if (!usersResponse.ok) {
+      throw new Error("Failed to fetch users");
+    }
+
+    const usersResult = await usersResponse.json();
+
+    const users = usersResult.data || usersResult;
+
+    // Find currently logged-in user
+    const currentUser = users.find(
+      (user: any) =>
+        user.email_id?.toLowerCase() === email.toLowerCase()
+    );
+
+    if (!currentUser) {
+      console.error("Logged-in user not found in /api/users");
+      return;
+    }
+
+    console.log("Current user:", currentUser);
+
+    const currentUserId = Number(currentUser.rl_user_id);
+
+    setLoggedInUserId(currentUserId);
+
+    // Get resources
+    const resourcesResponse = await fetch(
+      "http://localhost:3000/api/resources"
+    );
+
+    if (!resourcesResponse.ok) {
+      throw new Error("Failed to fetch resources");
+    }
+
+    const resourcesResult = await resourcesResponse.json();
+
+    const resources = resourcesResult.data || [];
+
+    console.log("All resources:", resources);
+
+    // IMPORTANT:
+    // Only resources assigned to logged-in user
+    const myResources = resources.filter(
+      (item: any) =>
+        Number(item.rl_user_id) === currentUserId
+    );
+
+    console.log("Logged-in user's resources:", myResources);
+
+    // Store only user's resources
+    setApplications(myResources);
+
+    setFilteredApplications(myResources);
+
+    // -----------------------------
+    // UNIQUE TOWERS
+    // -----------------------------
+
+    const uniqueTowers = Array.from(
+      new Map(
+        myResources.map((item: any) => [
+          item.tower_id,
+          {
+            tower_id: item.tower_id,
+            tower_name: item.tower_name,
+          },
+        ])
+      ).values()
+    );
+
+    console.log("User towers:", uniqueTowers);
+
+    setUserTowers(uniqueTowers);
+
+    // -----------------------------
+    // AUTO SELECT TOWER
+    // -----------------------------
+
+    if (uniqueTowers.length === 1) {
+      setTowerId(String(uniqueTowers[0].tower_id));
+    }
+
+  } catch (error) {
+    console.error(
+      "Error loading logged-in user's resources:",
+      error
+    );
+  }
+};
+
+
+useEffect(() => {
+  if (!towerId) {
+    setFilteredApplications([]);
+    setUserNames([]);
+    setApplicationId("");
+    setSelectedUserNames([]);
+    return;
+  }
+
+  // Only applications belonging to selected tower
+  const towerResources = applications.filter(
+    (item: any) =>
+      Number(item.tower_id) === Number(towerId)
+  );
+
+  // Unique applications
+  const uniqueApplications = Array.from(
+    new Map(
+      towerResources.map((item: any) => [
+        item.application_id,
+        {
+          application_id: item.application_id,
+          application_name: item.application_name,
+        },
+      ])
+    ).values()
+  );
+
+  console.log(
+    "Applications for selected tower:",
+    uniqueApplications
+  );
+
+  setFilteredApplications(uniqueApplications);
+
+  // Reset application when tower changes
+  setApplicationId("");
+
+  // Reset users
+  setUserNames([]);
+
+  setSelectedUserNames([]);
+
+}, [towerId, applications]);
+
+
+
+useEffect(() => {
+  if (!towerId || !applicationId) {
+    setUserNames([]);
+    setSelectedUserNames([]);
+    return;
+  }
+
+  const filteredUsers = applications.filter(
+    (item: any) =>
+      Number(item.tower_id) === Number(towerId) &&
+      Number(item.application_id) === Number(applicationId)
+  );
+
+  const uniqueUsers = Array.from(
+    new Set(
+      filteredUsers.map(
+        (item: any) => item.user_name
+      )
+    )
+  );
+
+  console.log(
+    "Users for selected tower + application:",
+    uniqueUsers
+  );
+
+  setUserNames(uniqueUsers);
+
+  // All users by default
+  setSelectedUserNames([]);
+
+}, [towerId, applicationId, applications]);
+
+
+
+
+<Select
+  value={towerId}
+  onChange={(e) => {
+    setTowerId(e.target.value);
+  }}
+>
+  {userTowers.map((tower: any) => (
+    <MenuItem
+      key={tower.tower_id}
+      value={tower.tower_id}
+    >
+      {tower.tower_name}
+    </MenuItem>
+  ))}
+</Select>
+
+{filteredApplications.map((application: any) => (
+  <MenuItem
+    key={application.application_id}
+    value={application.application_id}
+  >
+    {application.application_name}
+  </MenuItem>
+))}
+
+
+
+<FormControl fullWidth>
+  <InputLabel>Resources</InputLabel>
+
+  <Select
+    multiple
+    value={selectedUserNames}
+    onChange={(event) => {
+      const value = event.target.value;
+
+      if (typeof value === "string") {
+        setSelectedUserNames(value.split(","));
+      } else {
+        setSelectedUserNames(value);
+      }
+    }}
+    input={<OutlinedInput label="Resources" />}
+    renderValue={(selected) => {
+      if (selected.length === 0) {
+        return "All Users";
+      }
+
+      return selected.join(", ");
+    }}
+  >
+
+    {/* All Users */}
+    <MenuItem value="">
+      <Checkbox
+        checked={selectedUserNames.length === 0}
+      />
+
+      <ListItemText primary="All Users" />
+    </MenuItem>
+
+    {/* Individual users */}
+    {userNames.map((name) => (
+      <MenuItem
+        key={name}
+        value={name}
+      >
+        <Checkbox
+          checked={selectedUserNames.includes(name)}
+        />
+
+        <ListItemText primary={name} />
+      </MenuItem>
+    ))}
+
+  </Select>
+</FormControl>
+
+const params = new URLSearchParams({
+  fromDate,
+  toDate,
+  towerId: String(towerId),
+  applicationId: String(applicationId),
+});
+
+if (selectedUserNames.length > 0) {
+  params.append(
+    "user_name",
+    selectedUserNames.join(",")
+  );
+}
+
+const response = await fetch(
+  `http://localhost:3000/api/report?${params.toString()}`
+);
+
+
+
+
