@@ -937,3 +937,82 @@ export default function ReportsPage(): React.JSX.Element {
                 onChange={
                   handleApplicationChange
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+     }
+              >
+                <MenuItem value="">
+                  Select Application
+                </MenuItem>
+
+                {applicationOptions.map(
+                  (application) => (
+                    <MenuItem
+                      key={
+                        application.application_id
+                      }
+                      value={
+                        application.application_id
+                      }
+                    >
+                      {
+                        application.application_name
+                      }
+                    </MenuItem>
+                  )
+                )}
+              </Select>
+            </FormControl>
+
+
+            {/* PREVIEW */}
+
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={
+                loadingPreview ? (
+                  <CircularProgress
+                    size={20}
+                    color="inherit"
+                  />
+                ) : (
+                  <PreviewIcon />
+                )
+              }
+              disabled={
+                loadingPreview ||
+                loadingResources
+              }
+              onClick={
+                handlePreview
+              }
+              sx={{
+                height: 40,
+                fontWeight: 600,
+              }}
+            >
+              {loadingPreview
+                ? 'Loading...'
+                : 'Preview'}
+            </Button>
+
+          </Box>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+}
+
