@@ -419,3 +419,38 @@ React.useEffect(() => {
   setUserNames(names);
   setSelectedUserNames([]);
 }, [towerId, applicationId, allResources]);
+
+
+
+
+
+
+
+
+
+
+
+const loadAllResources = async () => {
+  try {
+    const response = await fetch("http://localhost:3000/api/resources");
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch resources");
+    }
+
+    const data = await response.json();
+
+    console.log("ALL RESOURCES FROM API:", data);
+
+    // Depending on your API response
+    const resources = Array.isArray(data)
+      ? data
+      : data.data || [];
+
+    setAllResources(resources);
+
+  } catch (error) {
+    console.error("Error loading resources:", error);
+    setAllResources([]);
+  }
+};
