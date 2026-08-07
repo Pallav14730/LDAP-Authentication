@@ -381,3 +381,41 @@ React.useEffect(() => {
   // Default = All Users
   setSelectedUserNames([]);
 }, [towerId, applicationId, allResources]);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+React.useEffect(() => {
+  if (!towerId || !applicationId) {
+    setUserNames([]);
+    return;
+  }
+
+  const filteredResources = allResources.filter(
+    (resource) =>
+      String(resource.tower_id) === String(towerId) &&
+      String(resource.application_id) === String(applicationId)
+  );
+
+  const names = Array.from(
+    new Set(
+      filteredResources
+        .map((resource) => resource.user_name)
+        .filter(Boolean)
+    )
+  );
+
+  setUserNames(names);
+  setSelectedUserNames([]);
+}, [towerId, applicationId, allResources]);
