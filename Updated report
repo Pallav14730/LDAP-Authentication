@@ -354,3 +354,30 @@ const response = await fetch(
   ))}
 </TextField>
 
+
+React.useEffect(() => {
+  if (!towerId || !applicationId) {
+    setUsernames([]);
+    setSelectedUserNames([]);
+    return;
+  }
+
+  const filtered = allResources.filter(
+    (resource) =>
+      String(resource.tower_id) === String(towerId) &&
+      String(resource.application_id) === String(applicationId)
+  );
+
+  const names = [
+    ...new Set(
+      filtered
+        .map((resource) => resource.user_name)
+        .filter(Boolean)
+    ),
+  ];
+
+  setUsernames(names);
+
+  // Default = All Users
+  setSelectedUserNames([]);
+}, [towerId, applicationId, allResources]);
